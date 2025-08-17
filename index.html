@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>บอร์ดเกมคณิตคิดสนุก Setup!</title>
+<style>
+  body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f2e6d9;
+    text-align: center;
+    padding: 20px;
+  }
+  h1, h2 { margin: 10px; }
+  .hidden { display: none; }
+
+  /* การ์ดเหมือนบอร์ดเกม */
+  .card {
+    background-color: #fff8dc;
+    border: 3px solid #8b4513;
+    border-radius: 15px;
+    margin: 20px auto;
+    padding: 25px;
+    max-width: 450px;
+    box-shadow: 4px 4px 8px rgba(0,0,0,0.3);
+  }
+
+  /* ปุ่มใหญ่คลาสสิก */
+  .big {
+    font-size: 1.2em;
+    padding: 12px 25px;
+    margin: 8px;
+    border-radius: 12px;
+    border: 2px solid #8b4513;
+    background-color: #ffdead;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  .big:hover {
+    background-color: #ffe4b5;
+    transform: scale(1.05);
+  }
+
+  input {
+    font-size: 1em;
+    padding: 8px;
+    width: 100px;
+    text-align: center;
+    border-radius: 8px;
+    border: 2px solid #8b4513;
+    margin-bottom: 12px;
+  }
+
+  .score {
+    font-weight: bold;
+    color: #8b0000;
+  }
+
+  p { font-weight: bold; }
+</style>
+</head>
+<body>
+
+<!-- หน้าเลือกแอคชั่น -->
+<div class="card" id="home">
+  <h1>บอร์ดเกมคณิตคิดสนุก Setup!</h1>
+  <p>คะแนน</p>
+  <p>ผู้เล่น 1: <span class="score" id="score1">0</span> | ผู้เล่น 2: <span class="score" id="score2">0</span></p>
+  <button class="big" id="btn-question">การตอบคำถาม</button>
+</div>
+
+<!-- หน้าเลือกผู้เล่น -->
+<div class="card hidden" id="screen-player">
+  <h2>ผู้เล่นใครตอบ?</h2>
+  <button class="big btn-player" data-player="1">ผู้เล่น 1</button>
+  <button class="big btn-player" data-player="2">ผู้เล่น 2</button>
+</div>
+
+<!-- หน้าเลือกความยาก -->
+<div class="card hidden" id="screen-difficulty">
+  <h2>เลือกความยาก</h2>
+  <button class="big" id="btn-easy">?</button>
+  <button class="big" id="btn-hard">!?</button>
+</div>
+
+<!-- หน้าเล่นคำถาม -->
+<div class="card hidden" id="screen-question">
+  <h2 id="question-text">คำถาม</h2>
+  <input type="text" id="answer-input" placeholder="คำตอบ">
+  <button class="big" id="submit-answer">ตอบ</button>
+  <p>โอกาส: <span id="attempts-left">0</span> | เวลาที่เหลือ: <span id="time-left">0</span> วินาที</p>
+</div>
+
+<!-- หน้าแสดงผู้ชนะ -->
+<div class="card hidden" id="screen-winner">
+  <h1 id="winner-text">ผู้เล่น X ชนะ!</h1>
+  <button class="big" id="btn-restart">เล่นอีกตาไหม?</button>
+</div>
+
+<script>
+// ----- ข้อมูลคำถาม 100 ข้อ -----
+const questions = [
+{q:"15 + 28 = ?", a:"43"},{q:"72 - 39 = ?", a:"33"},{q:"8 × 7 = ?", a:"56"},
+{q:"96 ÷ 12 = ?", a:"8"},{q:"5² = ?", a:"25"},{q:"2⁵ = ?", a:"32"},
+{q:"√49 = ?", a:"7"},{q:"3⁴ = ?", a:"81"},{q:"2/3 + 1/6 = ?", a:"5/6"},
+{q:"7/8 - 1/4 = ?", a:"5/8"},{q:"0.25 + 0.75 = ?", a:"1"},{q:"3.6 - 1.9 = ?", a:"1.7"},
+{q:"2.5 × 4 = ?", a:"10"},{q:"9 ÷ 0.5 = ?", a:"18"},{q:"x + 7 = 15", a:"8"},
+{q:"2x = 18", a:"9"},{q:"3x - 5 = 10", a:"5"},{q:"4x + 7 = 23", a:"4"},
+{q:"x/5 = 6", a:"30"},{q:"2 : 3 = 10 : ?", a:"15"},{q:"แอปเปิล 4 ลูก ราคา 20 บาท แอปเปิล 10 ลูก ราคาเท่าไร", a:"50"},
+{q:"25% ของ 200 = ?", a:"50"},{q:"สินค้าลด 20% จาก 500 บาท จะเหลือกี่บาท", a:"400"},
+{q:"นักเรียน 40 คน ชาย 15 คน หญิงกี่คน", a:"25"},{q:"ค่าเฉลี่ยของ 5, 7, 8, 10 = ?", a:"7.5"},
+{q:"มัธยฐานของ 3, 5, 7, 8, 12 = ?", a:"7"},{q:"ฐานนิยมของ 2, 4, 4, 5, 6, 6, 6, 7 = ?", a:"6"},
+{q:"ผลบวกของ 1 ถึง 10 = ?", a:"55"},{q:"ผลคูณของ 1 ถึง 5 = ?", a:"120"},
+{q:"(15 + 5) × 2 = ?", a:"40"},{q:"20 ÷ (3 + 2) = ?", a:"4"},{q:"2³ + 3² = ?", a:"17"},
+{q:"(10 - 4)² = ?", a:"36"},{q:"12 × (5 - 2) = ?", a:"36"},{q:"0.2 × 0.5 = ?", a:"0.1"},
+{q:"0.6 ÷ 0.2 = ?", a:"3"},{q:"5/6 + 1/3 = ?", a:"1"},{q:"7/10 - 2/5 = ?", a:"3/10"},
+{q:"2/9 × 3/4 = ?", a:"1/6"},{q:"5/8 ÷ 5/16 = ?", a:"2"},{q:"6² - 5² = ?", a:"11"},
+{q:"x - 3 = 7", a:"10"},{q:"5x + 2 = 17", a:"3"},{q:"12 - 4x = 0", a:"3"},
+{q:"2(x + 5) = 20", a:"5"},{q:"4 : 6 = ? : 9", a:"6"},{q:"มีนักเรียน 60 คน ชาย : หญิง = 2 : 3, นักเรียนหญิงจะมีกี่คน", a:"36"},
+{q:"เงิน 1000 บาท ดอกเบี้ย 5% ต่อปี = ดอกเบี้ยเป็นเงินกี่บาท", a:"50"},{q:"สอบได้ 80 จากเต็ม 100 = กี่ %", a:"80%"},
+{q:"สินค้า 200 บาท เพิ่มราคา 10% = จะเป็นกี่บาท", a:"220"},{q:"7 × (8 - 3) = ?", a:"35"},
+{q:"(20 + 15) ÷ 5 = ?", a:"7"},{q:"3³ + 2⁴ = ?", a:"41"},{q:"√81 = ?", a:"9"},
+{q:"√144 = ?", a:"12"},{q:"2.4 + 3.75 = ?", a:"6.15"},{q:"9.5 - 4.2 = ?", a:"5.3"},
+{q:"0.8 × 0.25 = ?", a:"0.2"},{q:"6.6 ÷ 0.3 = ?", a:"22"},{q:"3/5 + 4/10 = ?", a:"1"},
+{q:"7/12 - 1/6 = ?", a:"5/12"},{q:"2/7 × 14/5 = ?", a:"4/5"},{q:"9/10 ÷ 3/5 = ?", a:"1.5"},
+{q:"x + 12 = 20", a:"8"},{q:"7x = 63", a:"9"},{q:"15 - 2x = 5", a:"5"},
+{q:"3x + 4 = 19", a:"5"},{q:"x/4 + 2 = 6", a:"16"},{q:"5 : ? = 20 : 40", a:"10"},
+{q:"ถ้าแป้ง 2 กก. ราคา 90 บาท แป้ง 5 กก. จะมีราคากี่บาท", a:"225"},
+{q:"มีนักเรียน 45 คน ชาย : หญิง = 1 : 2 จะมีนักเรียนหญิงกี่คน", a:"30"},
+{q:"เมื่อรถวิ่ง 60 กม. ใช้น้ำมัน 5 ลิตร ถ้าวิ่ง 180 กม. จะใช้น้ำมันกี่ลิตร", a:"15"},
+{q:"15% ของ 400 = ?", a:"60"},{q:"สินค้า 800 บาท ลด 25% จะเหลือกี่บาท", a:"600"},
+{q:"เงินฝาก 2000 บาท ดอกเบี้ย 3% ต่อปี = ดอกเบี้ยจะเป็นเงินกี่บาท", a:"60"},
+{q:"สอบได้ 40 จากเต็ม 80 = กี่ %", a:"50%"},{q:"สินค้า 120 บาท เพิ่ม 20% = ทั้งหมดกี่บาท", a:"144"},
+{q:"ค่าเฉลี่ยของ 6, 8, 10, 16 = ?", a:"10"},{q:"มัธยฐานของ 4, 7, 9, 10, 15, 20 = ?", a:"9.5"},
+{q:"ฐานนิยมของ 1, 2, 2, 3, 3, 3, 4 = ?", a:"3"},{q:"ผลบวกของ 1 ถึง 20 = ?", a:"210"},
+{q:"ผลคูณของ 1 ถึง 4 = ?", a:"24"},{q:"(30 - 10) ÷ 5 = ?", a:"4"},{q:"6² + 4² = ?", a:"52"},
+{q:"2⁶ = ?", a:"64"},{q:"10³ = ?", a:"1000"},{q:"4x - 7 = 13", a:"5"},{q:"9x + 2 = 29", a:"3"},
+{q:"2x/3 = 10", a:"15"},{q:"(x + 5) ÷ 2 = 6", a:"7"},{q:"เงิน 900 บาท แบ่ง 2:1 คนที่ได้มากกว่าจะได้เท่าไร", a:"600"},
+{q:"น้ำส้ม 3 ขวด ราคา 90 บาท น้ำส้ม 7 ขวดจะราคาเท่าไร", a:"210"},{q:"ชาย : หญิง = 2:5 รวมกัน 70 คน ชายจะมีกี่คน", a:"20"},
+{q:"รถวิ่ง 100 กม. ใช้เวลา 2 ชม. ถ้ารถวิ่ง 250 กม. จะใช้เวลากี่ชั่วโมง", a:"5"},
+{q:"30% ของ 250 = เท่าไหร่", a:"75"},{q:"1200 บาท ลด 10% จะเหลือเท่าไร", a:"1080"},
+{q:"เงินฝาก 5000 บาท ดอกเบี้ย 4% ต่อปี = ดอกเบี้ยต่อปีเท่ากับกี่บาท", a:"200"},
+{q:"ได้คะแนน 36 จากเต็ม 60 = กี่%", a:"60%"},{q:"สินค้า 400 บาท เพิ่ม 15% = จะเป็นกี่บาท", a:"460"},
+{q:"ค่าเฉลี่ยของ 5, 10, 15, 20, 25 = ?", a:"15"}
+];
+
+// ----- ตัวแปรระบบเกม -----
+let score = {1:0, 2:0};
+let currentPlayer = null;
+let currentQuestion = null;
+let attemptsLeft = 0;
+let timeLeft = 0;
+let timer = null;
+let pointPerCorrect = 1; // ค่าคะแนนตามความยาก
+
+function showScreen(id){
+  document.querySelectorAll('.card').forEach(c=>c.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+
+function pickRandomQuestion(){
+  return questions[Math.floor(Math.random()*questions.length)];
+}
+
+function startTimer(duration){
+  timeLeft = duration;
+  document.getElementById('time-left').textContent = timeLeft;
+  clearInterval(timer);
+  timer = setInterval(()=>{
+    timeLeft--;
+    document.getElementById('time-left').textContent = timeLeft;
+    if(timeLeft<=0){
+      clearInterval(timer);
+      alert('หมดเวลา!');
+      showScreen('home');
+    }
+  },1000);
+}
+
+// ----- อีเวนต์ -----
+document.getElementById('btn-question').addEventListener('click',()=>showScreen('screen-player'));
+
+document.querySelectorAll('.btn-player').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    currentPlayer = btn.dataset.player;
+    showScreen('screen-difficulty');
+  });
+});
+
+document.getElementById('btn-easy').addEventListener('click',()=>{
+  attemptsLeft=5;
+  pointPerCorrect=1;
+  currentQuestion=pickRandomQuestion();
+  document.getElementById('question-text').textContent=currentQuestion.q;
+  document.getElementById('attempts-left').textContent=attemptsLeft;
+  showScreen('screen-question');
+  startTimer(180);
+});
+
+document.getElementById('btn-hard').addEventListener('click',()=>{
+  attemptsLeft=3;
+  pointPerCorrect=2;
+  currentQuestion=pickRandomQuestion();
+  document.getElementById('question-text').textContent=currentQuestion.q;
+  document.getElementById('attempts-left').textContent=attemptsLeft;
+  showScreen('screen-question');
+  startTimer(60);
+});
+
+document.getElementById('submit-answer').addEventListener('click',()=>{
+  const ans=document.getElementById('answer-input').value.trim();
+  if(ans===currentQuestion.a){
+    score[currentPlayer]+=pointPerCorrect;
+    document.getElementById('score1').textContent=score[1];
+    document.getElementById('score2').textContent=score[2];
+    if(score[currentPlayer]>=30){
+      document.getElementById('winner-text').textContent=`ผู้เล่น ${currentPlayer} ชนะ!`;
+      showScreen('screen-winner');
+      clearInterval(timer);
+      return;
+    }
+    alert(`ถูกต้อง! คะแนน +${pointPerCorrect}`);
+    showScreen('home');
+  } else {
+    attemptsLeft--;
+    document.getElementById('attempts-left').textContent=attemptsLeft;
+    if(attemptsLeft<=0){
+      alert('หมดโอกาส!');
+      showScreen('home');
+    } else {
+      alert('ผิด! ลดโอกาส 1');
+    }
+  }
+  document.getElementById('answer-input').value='';
+});
+
+document.getElementById('btn-restart').addEventListener('click',()=>{
+  score={1:0,2:0};
+  document.getElementById('score1').textContent=0;
+  document.getElementById('score2').textContent=0;
+  showScreen('home');
+});
+</script>
+
+</body>
+</html>
